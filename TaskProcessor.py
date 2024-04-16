@@ -29,6 +29,14 @@ def split_video_into_scenes(video_path, output_dir , threshold=15.0):
     split_video_ffmpeg(video_path, newScneList, output_dir = output_dir, show_progress=True)
     pass
 
+def extract_chinese(text):
+    # 使用正则表达式匹配所有连续的汉字
+    # \u4e00-\u9fff 是汉字在Unicode表中的范围
+    pattern = re.compile(r'[\u4e00-\u9fff]+')
+    result = pattern.findall(text)
+    return result
+
+
 class TaskProcessor:
     """处理Excel的任务
     """
@@ -88,6 +96,7 @@ class TaskProcessor:
             for root, dirs, files in os.walk(srcDir):
                 for file in files:
                     # 检查文件扩展名是否为.mp4
+                    tagInFileName = extract_chinese(file)
                     if file.endswith('.mp4'):
                         try:
                             absPath  = os.path.join(root, file)
@@ -107,13 +116,19 @@ class TaskProcessor:
                             split_video_into_scenes(absPath, 
                                 output_dir=outputDir)
                             # 分割完视频以后，检查每一个切割后的视频是否存在
+                            ntags = tags+""
+                            for tagsinFileName in tagInFileName:
+                                if not ntags.endswith(","):
+                                    ntags += ","
+                                ntags += f" {tagsinFileName}"
+                            
                             
                             matchedFiles = self.findPatterMp4(outputDir, 
                                                               os.path.basename(absPath)[:-4])
                             for filePath in matchedFiles:
                                 if os.path.exists(filePath):
                                     dbConn.cursor().execute(f"""INSERT INTO ASSET_TAGS (fileName, tags) VALUES 
-                                                        (\"{filePath}\", \"{tags}\")""")
+                                                        (\"{filePath}\", \"{ntags}\")""")
                                     dbConn.commit()
                                     logger.info(f"""处理好切片{filePath}，并且加入到数据库{dbPath}中""")
                         except Exception as e:
