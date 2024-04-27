@@ -139,6 +139,25 @@ class TaskProcessor:
                 ret.append(absPath)
         return ret
     
+    def shotSplitFromVideo(self, videoPath, outputDir):
+        """
+        将视频文件进行切分，输出到指定路径当中，然后返回切分后的文件列表
+        """
+            # 检查文件扩展名是否为.mp4
+        file = videoPath
+        try:
+            absPath  = videoPath
+            split_video_into_scenes(absPath, 
+                output_dir=outputDir)
+            # 分割完视频以后，检查每一个切割后的视频是否存在
+            matchedFiles = self.findPatterMp4(outputDir, 
+                                                os.path.basename(absPath)[:-4], os.path.basename(absPath)[-4:])
+            return matchedFiles
+        except Exception as e:
+            logger.error(e)
+            logger.error(f"处理{absPath}出现异常,跳过")
+            return []
+    
     def process(self):
         for task in self.tasks:
             srcDir = task['srcDir']
